@@ -95,6 +95,7 @@ Even if many attributes are not exposed, since not supported, there is anyway a 
 - **ConnectTimeout**: you can use this attribute to set the connection timeout for the socket
 - **HostName**: you can use this attribute to get the real name of the host to connect to
 - **IdentityFile**: you can use this attribute to set the keys to try when connecting to remote host.
+- **IdentityAgent**: you can use this attribute to set the agent to use
 - **KexAlgorithms**: you can use this attribute to configure Key exchange methods with `session.method_pref(MethodType::Kex, algos.join(",").as_str())`
 - **MACs**: you can use this attribute to configure the MAC algos with `session.method_pref(MethodType::MacCs, algos.join(",").as_str())` and `session.method_pref(MethodType::MacSc, algos.join(",").as_str())`
 - **Port**: you can use this attribute to resolve the port to connect to

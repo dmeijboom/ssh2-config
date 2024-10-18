@@ -170,6 +170,9 @@ impl SshConfigParser {
             Field::IdentityFile => {
                 params.identity_file = Some(Self::parse_path_list(args)?);
             }
+            Field::IdentityAgent => {
+                params.identity_agent = Some(Self::parse_path(args)?);
+            }
             Field::IgnoreUnknown => {
                 params.ignore_unknown = Some(Self::parse_comma_separated_list(args)?);
             }
@@ -238,7 +241,6 @@ impl SshConfigParser {
             | Field::HostKeyAlias
             | Field::HostbasedKeyTypes
             | Field::IdentitiesOnly
-            | Field::IdentityAgent
             | Field::Include
             | Field::IPQoS
             | Field::KbdInteractiveAuthentication
@@ -282,22 +284,44 @@ impl SshConfigParser {
 
     /// Tokenize line if possible. Returns field name and args
     fn tokenize(line: &str) -> SshParserResult<(Field, Vec<String>)> {
-        let mut tokens = line.split_whitespace();
-        let field = match tokens.next().map(Field::from_str) {
-            Some(Ok(field)) => field,
-            Some(Err(field)) => {
-                return Err(SshParserError::UnknownField(
-                    field,
-                    tokens.map(|x| x.to_string()).collect(),
-                ))
+        let (prefix, line) = line
+            .trim()
+            .split_once(|c: char| c.is_whitespace())
+            .ok_or_else(|| SshParserError::MissingArgument)?;
+        let field = Field::from_str(prefix).map_err(|_| {
+            SshParserError::UnknownField(
+                prefix.to_string(),
+                line.split_whitespace()
+                    .map(|x| x.trim().to_string())
+                    .collect::<Vec<_>>(),
+            )
+        })?;
+
+        let mut chars = line.chars().peekable();
+        let mut args = vec![];
+
+        while let Some(c) = chars.peek() {
+            if *c == '"' {
+                chars.next();
+                args.push(chars.by_ref().take_while(|c| *c != '"').collect::<String>());
+                continue;
             }
-            None => return Err(SshParserError::MissingArgument),
-        };
-        let args = tokens
-            .map(|x| x.trim().to_string())
-            .filter(|x| !x.is_empty())
-            .collect();
-        Ok((field, args))
+
+            args.push(
+                chars
+                    .by_ref()
+                    .take_while(|c| !c.is_whitespace())
+                    .collect::<String>(),
+            );
+        }
+
+        Ok((
+            field,
+            args.into_iter()
+                .map(|x| x.trim().to_string())
+                .filter(|x| !x.is_empty())
+                .collect::<Vec<_>>(),
+        ))
     }
 
     // -- value parsers
@@ -509,6 +533,10 @@ mod test {
                 Path::new("/home/root/.ssh/pippo.key"),
                 Path::new("/home/root/.ssh/pluto.key")
             ]
+        );
+        assert_eq!(
+            params.identity_agent.as_deref().unwrap(),
+            Path::new("/tmp/agent 1.sock")
         );
         assert_eq!(params.user.as_deref().unwrap(), "omar");
 
@@ -1172,6 +1200,7 @@ Host 192.168.*.*    172.26.*.*      !192.168.1.30
     BindInterface   tun0
     Ciphers     +coi-piedi,cazdecan,triestin-stretto
     IdentityFile    /home/root/.ssh/pippo.key /home/root/.ssh/pluto.key
+    IdentityAgent   "/tmp/agent 1.sock"
     Macs     spyro,deoxys
     Port 2222
     PubkeyAcceptedAlgorithms    -omar-crypt

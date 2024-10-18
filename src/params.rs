@@ -35,6 +35,8 @@ pub struct HostParams {
     /// More than one file can be specified.
     /// If more than one file is specified, they will be read in order
     pub identity_file: Option<Vec<PathBuf>>,
+    /// Specifies the identity agent to contact for authentication requests
+    pub identity_agent: Option<PathBuf>,
     /// Specifies a pattern-list of unknown options to be ignored if they are encountered in configuration parsing
     pub ignore_unknown: Option<Vec<String>>,
     /// Specifies the available KEX (Key Exchange) algorithms
@@ -120,6 +122,9 @@ impl HostParams {
         }
         if let Some(identity_file) = b.identity_file.as_deref() {
             self.identity_file = Some(identity_file.to_owned());
+        }
+        if let Some(identity_agent) = b.identity_agent.as_deref() {
+            self.identity_agent = Some(identity_agent.to_owned());
         }
         if let Some(ignore_unknown) = b.ignore_unknown.as_deref() {
             self.ignore_unknown = Some(ignore_unknown.to_owned());
@@ -258,6 +263,7 @@ mod test {
         b.host_key_algorithms = Some(vec![]);
         b.host_name = Some(String::from("192.168.1.2"));
         b.identity_file = Some(vec![PathBuf::default()]);
+        b.identity_agent = Some(PathBuf::from("/tmp/agent.sock"));
         b.ignore_unknown = Some(vec![]);
         b.kex_algorithms = Some(vec![]);
         b.mac = Some(vec![]);
@@ -283,6 +289,7 @@ mod test {
         assert!(params.host_key_algorithms.is_some());
         assert!(params.host_name.is_some());
         assert!(params.identity_file.is_some());
+        assert!(params.identity_agent.is_some());
         assert!(params.ignore_unknown.is_some());
         assert!(params.kex_algorithms.is_some());
         assert!(params.mac.is_some());
